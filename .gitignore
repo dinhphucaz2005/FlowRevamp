@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+*.egg
+.venv/
+venv/
+
+# Data (keep structure, ignore bulk files)
+data/step1_preprocessed/*
+data/step2_nodes/*
+data/step3_edges/*
+data/step4_ocr/*
+data/output/*
+!data/*/.gitkeep
+
+# Models
+models/*.pt
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# code-review-graph
+.code-review-graph/
