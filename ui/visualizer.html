@@ -1,0 +1,1618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FlowRevamp – Interactive Flowchart Visualizer</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-primary: #0f172a;
+            --bg-secondary: rgba(30, 41, 59, 0.75);
+            --bg-tertiary: #1e293b;
+            --accent: #0ea5e9;
+            --accent-hover: #0284c7;
+            --accent-glow: rgba(14, 165, 233, 0.2);
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --border-color: rgba(255, 255, 255, 0.08);
+            
+            --node-color: #10b981;
+            --node-color-rgb: 16, 185, 129;
+            --bad-node-color: #ef4444;
+            --bad-node-color-rgb: 239, 68, 68;
+            --edge-color: #d946ef;
+            --edge-color-rgb: 217, 70, 239;
+            
+            --sidebar-width: 340px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-main);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+        }
+
+        /* Layout */
+        aside.sidebar {
+            width: var(--sidebar-width);
+            background-color: var(--bg-secondary);
+            border-right: 1px solid var(--border-color);
+            backdrop-filter: blur(16px);
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            z-index: 10;
+            flex-shrink: 0;
+        }
+
+        main.main-content {
+            flex-grow: 1;
+            height: 100%;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            background-color: #0b0f19;
+        }
+
+        /* Sidebar Header */
+        .sidebar-header {
+            padding: 24px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .logo {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .logo span {
+            color: var(--accent);
+        }
+
+        .logo-tag {
+            font-size: 0.7rem;
+            background: var(--accent-glow);
+            color: var(--accent);
+            padding: 2px 6px;
+            border-radius: 4px;
+            border: 1px solid rgba(14, 165, 233, 0.3);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        /* Sidebar Content */
+        .sidebar-scrollable {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .section-title {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+            font-weight: 600;
+        }
+
+        .control-group {
+            background: rgba(15, 23, 42, 0.4);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 16px;
+        }
+
+        /* Form Controls */
+        label {
+            display: block;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+
+        select, input, textarea {
+            width: 100%;
+            background-color: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 0.9rem;
+            outline: none;
+            transition: all 0.2s ease;
+        }
+
+        select:focus, input:focus, textarea:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 2px var(--accent-glow);
+        }
+
+        .toggle-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+        }
+
+        .toggle-container:last-child {
+            margin-bottom: 0;
+        }
+
+        /* Custom Checkbox Toggle */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 22px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--bg-tertiary);
+            transition: .3s;
+            border-radius: 34px;
+            border: 1px solid var(--border-color);
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 14px;
+            width: 14px;
+            left: 3px;
+            bottom: 3px;
+            background-color: var(--text-muted);
+            transition: .3s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: var(--accent-glow);
+            border-color: var(--accent);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(22px);
+            background-color: var(--accent);
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+        }
+
+        .stat-card {
+            background: rgba(15, 23, 42, 0.4);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 12px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            font-family: 'Space Grotesk', sans-serif;
+            color: var(--accent);
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        /* Main Viewport */
+        .viewport-header {
+            padding: 16px 24px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background-color: var(--bg-secondary);
+            backdrop-filter: blur(12px);
+            z-index: 5;
+        }
+
+        .viewport-title {
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: var(--text-main);
+        }
+
+        .toolbar {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            background-color: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: inherit;
+            font-weight: 500;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .btn:hover {
+            background-color: rgba(255,255,255,0.05);
+            border-color: var(--text-muted);
+        }
+
+        .btn-primary {
+            background-color: var(--accent);
+            border-color: var(--accent);
+            color: #fff;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--accent-hover);
+            border-color: var(--accent-hover);
+            box-shadow: 0 0 10px rgba(14, 165, 233, 0.4);
+        }
+
+        /* Viewport Canvas Area */
+        .viewport-canvas {
+            flex-grow: 1;
+            position: relative;
+            overflow: hidden;
+            cursor: grab;
+            user-select: none;
+        }
+
+        .viewport-canvas:active {
+            cursor: grabbing;
+        }
+
+        #zoom-content {
+            position: absolute;
+            transform-origin: 0 0;
+            transition: transform 0.05s ease-out;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            background-color: #fff;
+        }
+
+        #flowchart-image {
+            display: block;
+            pointer-events: none;
+            max-width: none;
+            max-height: none;
+            opacity: 0.85;
+            transition: opacity 0.2s ease;
+        }
+
+        #flowchart-svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        /* SVG Overlay Styling */
+        .flowchart-node {
+            fill: rgba(var(--node-color-rgb), 0.1);
+            stroke: var(--node-color);
+            stroke-width: 4;
+            pointer-events: all;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .flowchart-node:hover {
+            fill: rgba(var(--node-color-rgb), 0.25);
+            stroke-width: 6;
+            filter: drop-shadow(0 0 6px rgba(var(--node-color-rgb), 0.6));
+        }
+
+        .flowchart-node.selected {
+            fill: rgba(var(--node-color-rgb), 0.35);
+            stroke-width: 7;
+            stroke: #fff;
+            filter: drop-shadow(0 0 8px rgba(var(--node-color-rgb), 0.8));
+        }
+
+        /* Node Types Custom Coloring */
+        .decision-node {
+            stroke: #f59e0b; /* Amber */
+            fill: rgba(245, 158, 11, 0.08);
+        }
+        .decision-node:hover {
+            fill: rgba(245, 158, 11, 0.2);
+            filter: drop-shadow(0 0 6px rgba(245, 158, 11, 0.6));
+        }
+        .decision-node.selected {
+            fill: rgba(245, 158, 11, 0.3);
+            stroke: #fff;
+        }
+
+        .terminal-node {
+            stroke: #3b82f6; /* Blue */
+            fill: rgba(59, 130, 246, 0.08);
+        }
+        .terminal-node:hover {
+            fill: rgba(59, 130, 246, 0.2);
+            filter: drop-shadow(0 0 6px rgba(59, 130, 246, 0.6));
+        }
+        .terminal-node.selected {
+            fill: rgba(59, 130, 246, 0.3);
+            stroke: #fff;
+        }
+
+        .connector-node {
+            stroke: #a855f7; /* Purple */
+            fill: rgba(168, 85, 247, 0.08);
+        }
+        .connector-node:hover {
+            fill: rgba(168, 85, 247, 0.2);
+            filter: drop-shadow(0 0 6px rgba(168, 85, 247, 0.6));
+        }
+        .connector-node.selected {
+            fill: rgba(168, 85, 247, 0.3);
+            stroke: #fff;
+        }
+
+        .data-node {
+            stroke: #06b6d4; /* Cyan */
+            fill: rgba(6, 182, 212, 0.08);
+        }
+        .data-node:hover {
+            fill: rgba(6, 182, 212, 0.2);
+            filter: drop-shadow(0 0 6px rgba(6, 182, 212, 0.6));
+        }
+        .data-node.selected {
+            fill: rgba(6, 182, 212, 0.3);
+            stroke: #fff;
+        }
+
+        .bad-node {
+            stroke: var(--bad-node-color);
+            fill: rgba(var(--bad-node-color-rgb), 0.08);
+        }
+
+        .bad-node:hover {
+            fill: rgba(var(--bad-node-color-rgb), 0.2);
+            filter: drop-shadow(0 0 6px rgba(var(--bad-node-color-rgb), 0.6));
+        }
+
+        .bad-node.selected {
+            fill: rgba(var(--bad-node-color-rgb), 0.3);
+            stroke: #fff;
+        }
+
+        .bad-node-x {
+            stroke: rgba(var(--bad-node-color-rgb), 0.6);
+            stroke-width: 2;
+            stroke-dasharray: 4 4;
+            pointer-events: none;
+        }
+
+        /* Edges */
+        .flowchart-edge {
+            fill: none;
+            stroke: var(--edge-color);
+            stroke-width: 5;
+            pointer-events: all;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .flowchart-edge:hover {
+            stroke-width: 8;
+            stroke: #fff;
+            filter: drop-shadow(0 0 6px rgba(var(--edge-color-rgb), 0.8));
+        }
+
+        .flowchart-edge.selected {
+            stroke-width: 8;
+            stroke: #0ea5e9;
+            filter: drop-shadow(0 0 8px rgba(14, 165, 233, 0.8));
+        }
+
+        .bad-edge {
+            stroke: var(--bad-node-color);
+        }
+        .bad-edge:hover {
+            stroke: #fff;
+            filter: drop-shadow(0 0 6px rgba(var(--bad-node-color-rgb), 0.8));
+        }
+
+        /* Edge and Node Text labels */
+        .edge-text {
+            font-size: 11px;
+            font-family: inherit;
+            font-weight: 600;
+            fill: #fff;
+            background-color: var(--bg-primary);
+            text-anchor: middle;
+            pointer-events: none;
+        }
+
+        .node-text-label {
+            font-size: 12px;
+            font-family: inherit;
+            font-weight: 500;
+            fill: #fff;
+            text-anchor: middle;
+            pointer-events: none;
+            text-shadow: 0 1px 4px rgba(0,0,0,0.8), 0 0 2px rgba(0,0,0,1);
+        }
+
+        /* Hover overlay card in viewport */
+        .hover-card {
+            position: absolute;
+            bottom: 24px;
+            left: 24px;
+            background: rgba(15, 23, 42, 0.85);
+            border: 1px solid var(--border-color);
+            backdrop-filter: blur(12px);
+            padding: 16px;
+            border-radius: 12px;
+            pointer-events: none;
+            max-width: 300px;
+            z-index: 8;
+            display: none;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+            transition: all 0.2s ease;
+        }
+
+        .hover-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .hover-card-id {
+            font-weight: 700;
+            color: var(--accent);
+            font-family: 'Space Grotesk', sans-serif;
+        }
+
+        .hover-card-type {
+            font-size: 0.75rem;
+            background: var(--border-color);
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+
+        .hover-card-text {
+            font-size: 0.9rem;
+            color: var(--text-main);
+            font-style: italic;
+        }
+
+        /* Zoom Control Overlay */
+        .zoom-controls {
+            position: absolute;
+            bottom: 24px;
+            right: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            z-index: 8;
+        }
+
+        .zoom-btn {
+            width: 40px;
+            height: 40px;
+            background: rgba(30, 41, 59, 0.85);
+            border: 1px solid var(--border-color);
+            backdrop-filter: blur(8px);
+            border-radius: 8px;
+            color: var(--text-main);
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .zoom-btn:hover {
+            background-color: var(--accent);
+            border-color: var(--accent);
+            box-shadow: 0 0 10px rgba(14, 165, 233, 0.4);
+        }
+
+        /* Inspector panel (Right Sidebar) */
+        .inspector-panel {
+            width: 320px;
+            background-color: var(--bg-secondary);
+            border-left: 1px solid var(--border-color);
+            backdrop-filter: blur(16px);
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            z-index: 9;
+            flex-shrink: 0;
+            transition: transform 0.3s ease;
+        }
+
+        .inspector-header {
+            padding: 24px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .inspector-scrollable {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* Legend Panel */
+        .legend-container {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .legend-glyph {
+            width: 24px;
+            height: 16px;
+            border-radius: 3px;
+            flex-shrink: 0;
+            display: inline-block;
+        }
+
+        .legend-glyph.process { border: 2px solid var(--node-color); background: rgba(var(--node-color-rgb), 0.1); }
+        .legend-glyph.decision { border: 2px solid #f59e0b; background: rgba(245, 158, 11, 0.1); clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%); width: 18px; height: 18px;}
+        .legend-glyph.terminal { border: 2px solid #3b82f6; background: rgba(59, 130, 246, 0.1); border-radius: 50% / 50%; }
+        .legend-glyph.connector { border: 2px solid #a855f7; background: rgba(168, 85, 247, 0.1); border-radius: 50%; width: 16px; height: 16px;}
+        .legend-glyph.data { border: 2px solid #06b6d4; background: rgba(6, 182, 212, 0.1); transform: skew(-15deg); }
+        .legend-glyph.bad { border: 2px solid var(--bad-node-color); background: rgba(var(--bad-node-color-rgb), 0.15); position: relative; }
+        .legend-glyph.bad::after { content: '✕'; color: var(--bad-node-color); font-size: 8px; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); }
+        .legend-glyph.edge { height: 4px; background: var(--edge-color); }
+
+        /* Toast notifications */
+        .toast {
+            position: fixed;
+            top: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-100px);
+            background: rgba(16, 185, 129, 0.95);
+            color: #fff;
+            padding: 12px 24px;
+            border-radius: 30px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            font-weight: 600;
+            z-index: 1000;
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* Scrollbar styles */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.1);
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255,255,255,0.25);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Left Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">🔄 Flow<span>Revamp</span><div class="logo-tag">v2.0</div></div>
+        </div>
+        
+        <div class="sidebar-scrollable">
+            <!-- Flowchart Selector -->
+            <div>
+                <h3 class="section-title">Select Flowchart</h3>
+                <select id="flowchart-select" onchange="onFlowchartChange(this.value)">
+                    <option value="">Loading list...</option>
+                </select>
+            </div>
+
+            <!-- Stats -->
+            <div>
+                <h3 class="section-title">Statistics</h3>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value" id="stats-nodes">0</div>
+                        <div class="stat-label">Total Nodes</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="stats-edges">0</div>
+                        <div class="stat-label">Total Edges</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Configuration/View Settings -->
+            <div>
+                <h3 class="section-title">View Options</h3>
+                <div class="control-group">
+                    <div class="toggle-container">
+                        <span style="font-size: 0.9rem;">Show Bad Nodes</span>
+                        <label class="switch">
+                            <input type="checkbox" id="toggle-bad-nodes" checked onchange="toggleBadNodes(this.checked)">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div class="toggle-container">
+                        <span style="font-size: 0.9rem;">Show Text Labels</span>
+                        <label class="switch">
+                            <input type="checkbox" id="toggle-text-labels" checked onchange="toggleTextLabels(this.checked)">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div style="margin-top: 14px;">
+                        <label for="overlay-opacity">Overlay Opacity</label>
+                        <input type="range" id="overlay-opacity" min="0" max="100" value="85" oninput="changeOpacity(this.value)">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Legend -->
+            <div>
+                <h3 class="section-title">Legend</h3>
+                <div class="control-group legend-container">
+                    <div class="legend-item"><span class="legend-glyph process"></span><span>Process Node</span></div>
+                    <div class="legend-item"><span class="legend-glyph decision"></span><span>Decision Node</span></div>
+                    <div class="legend-item"><span class="legend-glyph terminal"></span><span>Terminal (Start/End)</span></div>
+                    <div class="legend-item"><span class="legend-glyph connector"></span><span>Connector (Dot)</span></div>
+                    <div class="legend-item"><span class="legend-glyph data"></span><span>Data Node (I/O)</span></div>
+                    <div class="legend-item"><span class="legend-glyph bad"></span><span>Bad Node (Artifact)</span></div>
+                    <div class="legend-item"><span class="legend-glyph edge"></span><span>Traced Flow Connection</span></div>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Viewport -->
+    <main class="main-content">
+        <!-- Viewport Header Toolbar -->
+        <div class="viewport-header">
+            <div class="viewport-title" id="current-title">No Flowchart Loaded</div>
+            <div class="toolbar">
+                <button class="btn" id="btn-mode-overlay" onclick="setViewMode('overlay')" style="background-color: var(--accent); border-color: var(--accent);">Overlay Mode</button>
+                <button class="btn" id="btn-mode-reconstructed" onclick="setViewMode('reconstructed')">Reconstructed Mode</button>
+                <button class="btn btn-primary" onclick="downloadUpdatedData()">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+                    Export JS Data
+                </button>
+            </div>
+        </div>
+
+        <!-- Canvas area -->
+        <div class="viewport-canvas" id="viewport">
+            <div id="zoom-content">
+                <img id="flowchart-image" alt="Original Flowchart">
+                <svg id="flowchart-svg"></svg>
+            </div>
+            
+            <!-- Hover details popup card -->
+            <div class="hover-card" id="hover-card">
+                <div class="hover-card-header">
+                    <span class="hover-card-id" id="hover-id">N1</span>
+                    <span class="hover-card-type" id="hover-type">Process</span>
+                </div>
+                <div class="hover-card-text" id="hover-text">Some OCR text will appear here...</div>
+            </div>
+
+            <!-- Zoom controls HUD -->
+            <div class="zoom-controls">
+                <button class="zoom-btn" onclick="zoomIn()">+</button>
+                <button class="zoom-btn" onclick="zoomReset()">⟲</button>
+                <button class="zoom-btn" onclick="zoomOut()">-</button>
+            </div>
+        </div>
+    </main>
+
+    <!-- Right Sidebar (Inspector) -->
+    <aside class="inspector-panel" id="inspector">
+        <div class="inspector-header">
+            <h3 style="font-family: 'Space Grotesk', sans-serif; font-weight: 600;">Element Inspector</h3>
+            <span id="inspector-indicator" class="logo-tag" style="background: rgba(255,255,255,0.05); color: var(--text-muted); border-color: var(--border-color);">None</span>
+        </div>
+        
+        <div class="inspector-scrollable" id="inspector-content">
+            <div style="color: var(--text-muted); font-size: 0.95rem; text-align: center; margin-top: 40px;">
+                Click any node or edge to inspect and edit details.
+            </div>
+        </div>
+    </aside>
+
+    <!-- Toast Notification Alert -->
+    <div id="toast" class="toast">Saved Successfully!</div>
+
+    <!-- Scripts -->
+    <script src="flowcharts_list.js" onerror="alert('Could not find flowcharts_list.js! Please run the pipeline first.')"></script>
+    <script>
+        // State variables
+        let currentFlowchartKey = '';
+        let currentData = null;
+        let selectedElement = null; // { type: 'node'|'edge', index: number, id?: string }
+        let currentMode = 'overlay'; // 'overlay' | 'reconstructed'
+        let showBadNodes = true;
+        let showTextLabels = true;
+        
+        // Zoom/Pan State
+        let zoom = 1;
+        let panX = 0;
+        let panY = 0;
+        let isDragging = false;
+        let startX = 0;
+        let startY = 0;
+
+        // Node Dragging State
+        let isDraggingNode = false;
+        let draggedNodeId = null;
+        let startDragX = 0;
+        let startDragY = 0;
+        let initialNodeX = 0;
+        let initialNodeY = 0;
+
+        const viewport = document.getElementById('viewport');
+        const zoomContent = document.getElementById('zoom-content');
+        const img = document.getElementById('flowchart-image');
+        const svg = document.getElementById('flowchart-svg');
+        const hoverCard = document.getElementById('hover-card');
+
+        // Setup dropdown on load
+        window.addEventListener('DOMContentLoaded', () => {
+            const select = document.getElementById('flowchart-select');
+            select.innerHTML = '';
+            
+            if (window.flowchartsList && window.flowchartsList.length > 0) {
+                window.flowchartsList.forEach(key => {
+                    const opt = document.createElement('option');
+                    opt.value = key;
+                    opt.textContent = key;
+                    select.appendChild(opt);
+                });
+                // Load the first one
+                onFlowchartChange(window.flowchartsList[0]);
+            } else {
+                const opt = document.createElement('option');
+                opt.value = "";
+                opt.textContent = "No flowcharts available";
+                select.appendChild(opt);
+            }
+            
+            setupZoomAndPan();
+        });
+
+        // Load new flowchart script
+        function onFlowchartChange(key) {
+            if (!key) return;
+            currentFlowchartKey = key;
+            document.getElementById('current-title').textContent = key;
+            
+            // Check if already loaded in window.flowchartResults
+            if (window.flowchartResults && window.flowchartResults[key]) {
+                currentData = JSON.parse(JSON.stringify(window.flowchartResults[key])); // deep clone
+                selectedElement = null;
+                clearInspector();
+                renderFlowchart();
+            } else {
+                // Dynamically load script
+                const oldScript = document.getElementById('flowchart-data-script');
+                if (oldScript) oldScript.remove();
+                
+                const script = document.createElement('script');
+                script.id = 'flowchart-data-script';
+                script.src = `${key}_data.js`;
+                script.onload = () => {
+                    if (window.flowchartResults && window.flowchartResults[key]) {
+                        currentData = JSON.parse(JSON.stringify(window.flowchartResults[key]));
+                        selectedElement = null;
+                        clearInspector();
+                        renderFlowchart();
+                    } else {
+                        alert(`Data object window.flowchartResults["${key}"] not found in loaded script.`);
+                    }
+                };
+                script.onerror = () => {
+                    alert(`Failed to load ${key}_data.js`);
+                };
+                document.head.appendChild(script);
+            }
+        }
+
+        function getFlowchartDimensions() {
+            let maxX = 800;
+            let maxY = 600;
+            if (currentData && currentData.nodes) {
+                currentData.nodes.forEach(node => {
+                    const [x, y, w, h] = node.bbox;
+                    if (x + w > maxX) maxX = x + w + 100;
+                    if (y + h > maxY) maxY = y + h + 100;
+                });
+            }
+            return { w: maxX, h: maxY };
+        }
+
+        // Center flowchart in viewport
+        function centerFlowchart(width, height) {
+            const vRect = viewport.getBoundingClientRect();
+            zoom = Math.min((vRect.width - 60) / width, (vRect.height - 60) / height, 1);
+            zoom = Math.max(0.2, zoom);
+            panX = (vRect.width - width * zoom) / 2;
+            panY = (vRect.height - height * zoom) / 2;
+            updateTransform();
+        }
+
+        function setupZoomAndPan() {
+            // Drag Panning
+            viewport.addEventListener('mousedown', (e) => {
+                if (e.target.closest('.flowchart-node') || e.target.closest('.flowchart-edge') || e.target.closest('button') || e.target.closest('select') || e.target.closest('input')) {
+                    return;
+                }
+                isDragging = true;
+                startX = e.clientX - panX;
+                startY = e.clientY - panY;
+            });
+
+            window.addEventListener('mousemove', (e) => {
+                if (isDraggingNode) {
+                    const dx = (e.clientX - startDragX) / zoom;
+                    const dy = (e.clientY - startDragY) / zoom;
+                    const node = currentData.nodes.find(n => n.id === draggedNodeId);
+                    if (node) {
+                        node.bbox[0] = Math.round(initialNodeX + dx);
+                        node.bbox[1] = Math.round(initialNodeY + dy);
+                        
+                        // Update inspector panel in real-time if showing this node
+                        const bboxText = document.getElementById('inspect-bbox-text');
+                        if (bboxText) {
+                            bboxText.textContent = `[${node.bbox.join(', ')}]`;
+                        }
+                        
+                        renderFlowchart();
+                    }
+                    return;
+                }
+                if (!isDragging) return;
+                panX = e.clientX - startX;
+                panY = e.clientY - startY;
+                updateTransform();
+            });
+
+            window.addEventListener('mouseup', () => {
+                isDragging = false;
+                isDraggingNode = false;
+                draggedNodeId = null;
+            });
+
+            // Wheel Zooming
+            viewport.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                const zoomFactor = 1.15;
+                const rect = viewport.getBoundingClientRect();
+                const mouseX = e.clientX - rect.left;
+                const mouseY = e.clientY - rect.top;
+                
+                const contentX = (mouseX - panX) / zoom;
+                const contentY = (mouseY - panY) / zoom;
+                
+                if (e.deltaY < 0) {
+                    zoom *= zoomFactor;
+                } else {
+                    zoom /= zoomFactor;
+                }
+                
+                zoom = Math.max(0.1, Math.min(8, zoom));
+                
+                panX = mouseX - contentX * zoom;
+                panY = mouseY - contentY * zoom;
+                
+                updateTransform();
+            });
+        }
+
+        function updateTransform() {
+            zoomContent.style.transform = `translate(${panX}px, ${panY}px) scale(${zoom})`;
+        }
+
+        function zoomIn() {
+            zoom *= 1.25;
+            updateTransform();
+        }
+
+        function zoomOut() {
+            zoom /= 1.25;
+            updateTransform();
+        }
+
+        function zoomReset() {
+            const w = img.naturalWidth || 800;
+            const h = img.naturalHeight || 600;
+            centerFlowchart(w, h);
+        }
+
+        // Core Render logic
+        function renderFlowchart() {
+            if (!currentData) return;
+            
+            // Clear SVG content, preserve marker definitions
+            svg.innerHTML = `
+                <defs>
+                    <marker id="arrow" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                        <path d="M 0 1.5 L 10 5 L 0 8.5 z" fill="var(--edge-color)" />
+                    </marker>
+                    <marker id="arrow-bad" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                        <path d="M 0 1.5 L 10 5 L 0 8.5 z" fill="var(--bad-node-color)" />
+                    </marker>
+                </defs>
+            `;
+            
+            // Load original image in overlay mode
+            if (currentData.source_image) {
+                img.src = `../input/${currentData.source_image}`;
+                img.style.display = currentMode === 'overlay' ? 'block' : 'none';
+                zoomContent.style.backgroundColor = currentMode === 'overlay' ? 'transparent' : '#ffffff';
+            } else {
+                img.removeAttribute('src');
+                img.style.display = 'none';
+                zoomContent.style.backgroundColor = '#ffffff';
+            }
+            
+            const dims = getFlowchartDimensions();
+            const w = img.naturalWidth || dims.w;
+            const h = img.naturalHeight || dims.h;
+            
+            // Set bounds
+            zoomContent.style.width = w + 'px';
+            zoomContent.style.height = h + 'px';
+            svg.setAttribute('width', w);
+            svg.setAttribute('height', h);
+            svg.setAttribute('viewBox', `0 0 ${w} ${h}`);
+            
+            // If image is not loaded yet, wait for its onload, otherwise center now
+            if (img.complete && img.naturalWidth) {
+                if (panX === 0 && panY === 0) centerFlowchart(w, h);
+            } else {
+                img.onload = () => {
+                    const newW = img.naturalWidth;
+                    const newH = img.naturalHeight;
+                    zoomContent.style.width = newW + 'px';
+                    zoomContent.style.height = newH + 'px';
+                    svg.setAttribute('width', newW);
+                    svg.setAttribute('height', newH);
+                    svg.setAttribute('viewBox', `0 0 ${newW} ${newH}`);
+                    centerFlowchart(newW, newH);
+                };
+            }
+            
+            // Render Statistics
+            const filteredNodes = currentData.nodes.filter(n => showBadNodes || !n.is_bad);
+            document.getElementById('stats-nodes').textContent = filteredNodes.length;
+            
+            const visibleEdges = currentData.edges.filter(edge => {
+                const srcNode = currentData.nodes.find(n => n.id === edge.source);
+                const tgtNode = currentData.nodes.find(n => n.id === edge.target);
+                if (!srcNode || !tgtNode) return false;
+                return showBadNodes || (!srcNode.is_bad && !tgtNode.is_bad);
+            });
+            document.getElementById('stats-edges').textContent = visibleEdges.length;
+
+            // Render Edges
+            currentData.edges.forEach((edge, idx) => {
+                const srcNode = currentData.nodes.find(n => n.id === edge.source);
+                const tgtNode = currentData.nodes.find(n => n.id === edge.target);
+                if (!srcNode || !tgtNode) return;
+                
+                // Filtering
+                if (!showBadNodes && (srcNode.is_bad || tgtNode.is_bad)) return;
+                
+                const edgeGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                edgeGroup.setAttribute('id', `svg-edge-group-${idx}`);
+                
+                let pathD = '';
+                let midPoint = { x: 0, y: 0 };
+                if (currentMode === 'reconstructed') {
+                    // Reconstructed mode: calculate predicted direct connection from nearest anchors
+                    const pts = getReconstructedEdgePoints(srcNode, tgtNode);
+                    pathD = `M ${pts.x1} ${pts.y1} L ${pts.x2} ${pts.y2}`;
+                    midPoint = { x: (pts.x1 + pts.x2) / 2, y: (pts.y1 + pts.y2) / 2 };
+                } else {
+                    // Overlay mode: draw original physical lines if available
+                    if (edge.path && edge.path.length > 0) {
+                        pathD = 'M ' + edge.path.map(pt => `${pt[0]} ${pt[1]}`).join(' L ');
+                        midPoint = getPathMiddlePoint(edge.path);
+                    } else {
+                        const pts = getStraightLinePoints(srcNode, tgtNode);
+                        pathD = `M ${pts.x1} ${pts.y1} L ${pts.x2} ${pts.y2}`;
+                        midPoint = { x: (pts.x1 + pts.x2) / 2, y: (pts.y1 + pts.y2) / 2 };
+                    }
+                }
+                
+                const pathElement = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                pathElement.setAttribute('d', pathD);
+                pathElement.setAttribute('class', 'flowchart-edge');
+                pathElement.setAttribute('marker-end', (srcNode.is_bad || tgtNode.is_bad) ? 'url(#arrow-bad)' : 'url(#arrow)');
+                
+                if (srcNode.is_bad || tgtNode.is_bad) {
+                    pathElement.classList.add('bad-edge');
+                }
+                
+                if (selectedElement && selectedElement.type === 'edge' && selectedElement.index === idx) {
+                    pathElement.classList.add('selected');
+                }
+                
+                // Mouse interactions
+                pathElement.addEventListener('mouseenter', () => highlightEdge(idx));
+                pathElement.addEventListener('mouseleave', () => unhighlightEdge(idx));
+                pathElement.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    selectEdge(idx);
+                });
+                
+                edgeGroup.appendChild(pathElement);
+                
+                // Add text labels on edges
+                if (edge.label) {
+                    const textElement = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                    textElement.setAttribute('x', midPoint.x);
+                    textElement.setAttribute('y', midPoint.y - 8);
+                    textElement.setAttribute('class', 'edge-text');
+                    textElement.textContent = edge.label;
+                    edgeGroup.appendChild(textElement);
+                }
+                
+                svg.appendChild(edgeGroup);
+            });
+
+            // Render Nodes
+            currentData.nodes.forEach((node, idx) => {
+                if (node.is_bad && !showBadNodes) return;
+                
+                const [x, y, nw, nh] = node.bbox;
+                const nodeGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                nodeGroup.setAttribute('id', `svg-node-group-${node.id}`);
+                
+                let shapeElement;
+                const nodeType = node.type || 'Process';
+                
+                if (node.is_bad) {
+                    // Bad Nodes draw with cross dashes inside
+                    shapeElement = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                    
+                    const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                    rect.setAttribute('x', x);
+                    rect.setAttribute('y', y);
+                    rect.setAttribute('width', nw);
+                    rect.setAttribute('height', nh);
+                    rect.setAttribute('class', 'flowchart-node bad-node');
+                    shapeElement.appendChild(rect);
+                    
+                    const l1 = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                    l1.setAttribute('x1', x); l1.setAttribute('y1', y);
+                    l1.setAttribute('x2', x+nw); l1.setAttribute('y2', y+nh);
+                    l1.setAttribute('class', 'bad-node-x');
+                    shapeElement.appendChild(l1);
+                    
+                    const l2 = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                    l2.setAttribute('x1', x+nw); l2.setAttribute('y1', y);
+                    l2.setAttribute('x2', x); l2.setAttribute('y2', y+nh);
+                    l2.setAttribute('class', 'bad-node-x');
+                    shapeElement.appendChild(l2);
+                } else if (nodeType === 'Decision') {
+                    shapeElement = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+                    shapeElement.setAttribute('points', `${x + nw/2},${y} ${x + nw},${y + nh/2} ${x + nw/2},${y + nh} ${x},${y + nh/2}`);
+                    shapeElement.setAttribute('class', 'flowchart-node decision-node');
+                } else if (nodeType === 'Connector') {
+                    shapeElement = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                    shapeElement.setAttribute('cx', x + nw/2);
+                    shapeElement.setAttribute('cy', y + nh/2);
+                    shapeElement.setAttribute('r', Math.min(nw, nh) / 2);
+                    shapeElement.setAttribute('class', 'flowchart-node connector-node');
+                } else if (nodeType === 'Terminal') {
+                    shapeElement = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
+                    shapeElement.setAttribute('cx', x + nw/2);
+                    shapeElement.setAttribute('cy', y + nh/2);
+                    shapeElement.setAttribute('rx', nw/2);
+                    shapeElement.setAttribute('ry', nh/2);
+                    shapeElement.setAttribute('class', 'flowchart-node terminal-node');
+                } else if (nodeType === 'Data' || nodeType === 'IO') {
+                    const skew = nw * 0.18;
+                    shapeElement = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+                    shapeElement.setAttribute('points', `${x + skew},${y} ${x + nw},${y} ${x + nw - skew},${y + nh} ${x},${y + nh}`);
+                    shapeElement.setAttribute('class', 'flowchart-node data-node');
+                } else { // Process / Rect default
+                    shapeElement = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                    shapeElement.setAttribute('x', x);
+                    shapeElement.setAttribute('y', y);
+                    shapeElement.setAttribute('width', nw);
+                    shapeElement.setAttribute('height', nh);
+                    shapeElement.setAttribute('rx', 4);
+                    shapeElement.setAttribute('ry', 4);
+                    shapeElement.setAttribute('class', 'flowchart-node process-node');
+                }
+                
+                // Add selected class to the main element if selected
+                const interactiveNode = node.is_bad ? shapeElement.querySelector('rect') : shapeElement;
+                if (selectedElement && selectedElement.type === 'node' && selectedElement.id === node.id) {
+                    interactiveNode.classList.add('selected');
+                }
+                
+                // Attach events to interactiveNode
+                interactiveNode.addEventListener('mouseenter', () => highlightNode(node.id));
+                interactiveNode.addEventListener('mouseleave', () => unhighlightNode(node.id));
+                interactiveNode.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    selectNode(node.id);
+                });
+
+                // Dragging Node
+                interactiveNode.addEventListener('mousedown', (e) => {
+                    if (e.button !== 0) return; // Left click only
+                    e.stopPropagation();
+                    e.preventDefault();
+                    
+                    isDraggingNode = true;
+                    draggedNodeId = node.id;
+                    startDragX = e.clientX;
+                    startDragY = e.clientY;
+                    initialNodeX = node.bbox[0];
+                    initialNodeY = node.bbox[1];
+                    
+                    selectNode(node.id);
+                });
+                
+                nodeGroup.appendChild(shapeElement);
+                
+                // Label overlays
+                if (showTextLabels) {
+                    const textElement = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                    textElement.setAttribute('x', x + nw/2);
+                    textElement.setAttribute('y', y + nh/2 + 4);
+                    textElement.setAttribute('class', 'node-text-label');
+                    
+                    const labelText = node.text ? `${node.id}: ${node.text}` : `${node.id}`;
+                    const maxLength = 12;
+                    textElement.textContent = labelText.length > maxLength ? labelText.substring(0, maxLength) + '..' : labelText;
+                    nodeGroup.appendChild(textElement);
+                }
+                
+                svg.appendChild(nodeGroup);
+            });
+        }
+
+        // Helpers
+        function getStraightLinePoints(src, tgt) {
+            const scx = src.bbox[0] + src.bbox[2] / 2;
+            const scy = src.bbox[1] + src.bbox[3] / 2;
+            const tcx = tgt.bbox[0] + tgt.bbox[2] / 2;
+            const tcy = tgt.bbox[1] + tgt.bbox[3] / 2;
+            
+            const dx = tcx - scx;
+            const dy = tcy - scy;
+            const dist = Math.hypot(dx, dy);
+            
+            if (dist === 0) return { x1: scx, y1: scy, x2: tcx, y2: tcy };
+            
+            // Offset from edge targets to leave space for arrows
+            const targetRadius = Math.min(tgt.bbox[2], tgt.bbox[3]) / 2 + 8;
+            const x1 = scx;
+            const y1 = scy;
+            const x2 = tcx - (targetRadius * dx) / dist;
+            const y2 = tcy - (targetRadius * dy) / dist;
+            
+            return { x1, y1, x2, y2 };
+        }
+
+        function getPathMiddlePoint(points) {
+            if (!points || points.length === 0) return { x: 0, y: 0 };
+            const midIndex = Math.floor(points.length / 2);
+            return { x: points[midIndex][0], y: points[midIndex][1] };
+        }
+
+        function getReconstructedEdgePoints(src, tgt) {
+            const sx = src.bbox[0], sy = src.bbox[1], sw = src.bbox[2], sh = src.bbox[3];
+            const tx = tgt.bbox[0], ty = tgt.bbox[1], tw = tgt.bbox[2], th = tgt.bbox[3];
+            
+            const srcAnchors = [
+                { x: sx + sw/2, y: sy, name: 'top' },
+                { x: sx + sw/2, y: sy + sh, name: 'bottom' },
+                { x: sx, y: sy + sh/2, name: 'left' },
+                { x: sx + sw, y: sy + sh/2, name: 'right' }
+            ];
+            
+            const tgtAnchors = [
+                { x: tx + tw/2, y: ty, name: 'top' },
+                { x: tx + tw/2, y: ty + th, name: 'bottom' },
+                { x: tx, y: ty + th/2, name: 'left' },
+                { x: tx + tw, y: ty + th/2, name: 'right' }
+            ];
+            
+            let minDistance = Infinity;
+            let bestSrc = srcAnchors[0];
+            let bestTgt = tgtAnchors[0];
+            
+            srcAnchors.forEach(sa => {
+                tgtAnchors.forEach(ta => {
+                    const dist = Math.hypot(ta.x - sa.x, ta.y - sa.y);
+                    if (dist < minDistance) {
+                        minDistance = dist;
+                        bestSrc = sa;
+                        bestTgt = ta;
+                    }
+                });
+            });
+            
+            // Adjust target end point back slightly to make room for arrow marker
+            const dx = bestTgt.x - bestSrc.x;
+            const dy = bestTgt.y - bestSrc.y;
+            const len = Math.hypot(dx, dy);
+            
+            let x2 = bestTgt.x;
+            let y2 = bestTgt.y;
+            if (len > 12) {
+                x2 = bestTgt.x - (12 * dx) / len;
+                y2 = bestTgt.y - (12 * dy) / len;
+            }
+            
+            return { x1: bestSrc.x, y1: bestSrc.y, x2: x2, y2: y2 };
+        }
+
+        // Interactions and Highlighting
+        function highlightNode(id) {
+            const node = currentData.nodes.find(n => n.id === id);
+            if (!node) return;
+            
+            // SVG highlight effect
+            const svgGroup = document.getElementById(`svg-node-group-${id}`);
+            if (svgGroup) {
+                const shape = node.is_bad ? svgGroup.querySelector('rect') : svgGroup.querySelector('.flowchart-node');
+                if (shape) shape.style.filter = 'drop-shadow(0 0 10px rgba(14, 165, 233, 0.8))';
+            }
+        }
+
+        function unhighlightNode(id) {
+            const svgGroup = document.getElementById(`svg-node-group-${id}`);
+            if (svgGroup) {
+                const shape = svgGroup.querySelector('.flowchart-node');
+                if (shape) shape.style.filter = '';
+            }
+        }
+
+        function highlightEdge(idx) {
+            const svgGroup = document.getElementById(`svg-edge-group-${idx}`);
+            if (svgGroup) {
+                const path = svgGroup.querySelector('.flowchart-edge');
+                if (path && !path.classList.contains('selected')) {
+                    path.style.strokeWidth = '8px';
+                }
+            }
+        }
+
+        function unhighlightEdge(idx) {
+            const svgGroup = document.getElementById(`svg-edge-group-${idx}`);
+            if (svgGroup) {
+                const path = svgGroup.querySelector('.flowchart-edge');
+                if (path && !path.classList.contains('selected')) {
+                    path.style.strokeWidth = '';
+                }
+            }
+        }
+
+        function localToScreen(lx, ly) {
+            const vRect = viewport.getBoundingClientRect();
+            return {
+                x: lx * zoom + panX,
+                y: ly * zoom + panY
+            };
+        }
+
+        // Selection / Inspector logic
+        function selectNode(id) {
+            selectedElement = { type: 'node', id: id };
+            renderFlowchart();
+            
+            const node = currentData.nodes.find(n => n.id === id);
+            document.getElementById('inspector-indicator').textContent = 'Node';
+            
+            const content = document.getElementById('inspector-content');
+            content.innerHTML = `
+                <div class="control-group">
+                    <label>Node ID</label>
+                    <input type="text" value="${node.id}" disabled style="opacity: 0.6;">
+                </div>
+                <div class="control-group">
+                    <label>Node Type</label>
+                    <select id="inspect-node-type" onchange="updateSelectedNode('type', this.value)">
+                        <option value="Process" ${node.type === 'Process' ? 'selected' : ''}>Process</option>
+                        <option value="Decision" ${node.type === 'Decision' ? 'selected' : ''}>Decision</option>
+                        <option value="Terminal" ${node.type === 'Terminal' ? 'selected' : ''}>Terminal</option>
+                        <option value="Connector" ${node.type === 'Connector' ? 'selected' : ''}>Connector</option>
+                        <option value="Data" ${node.type === 'Data' || node.type === 'IO' ? 'selected' : ''}>Data / IO</option>
+                        <option value="Bad" ${node.is_bad ? 'selected' : ''}>Bad Node (Artifact)</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label>OCR Text Content</label>
+                    <textarea id="inspect-node-text" rows="3" oninput="updateSelectedNode('text', this.value)">${node.text || ''}</textarea>
+                </div>
+                <div class="control-group">
+                    <label>Bounding Box (X, Y, W, H)</label>
+                    <div id="inspect-bbox-text" style="font-family: monospace; font-size: 0.85rem; color: var(--text-muted);">
+                        [${node.bbox.join(', ')}]
+                    </div>
+                </div>
+                <button class="btn btn-primary" style="background-color: var(--bad-node-color); border-color: var(--bad-node-color); width: 100%; justify-content: center;" onclick="deleteNode('${node.id}')">
+                    Delete Node
+                </button>
+            `;
+        }
+
+        // Select Edge by Index
+        function selectEdge(idx) {
+            selectedElement = { type: 'edge', index: idx };
+            renderFlowchart();
+            
+            const edge = currentData.edges[idx];
+            document.getElementById('inspector-indicator').textContent = 'Edge';
+            
+            const content = document.getElementById('inspector-content');
+            content.innerHTML = `
+                <div class="control-group">
+                    <label>Source Node</label>
+                    <select onchange="updateSelectedEdge('source', this.value)">
+                        ${currentData.nodes.map(n => `<option value="${n.id}" ${n.id === edge.source ? 'selected' : ''}>${n.id} (${n.type || 'Process'})</option>`).join('')}
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label>Target Node</label>
+                    <select onchange="updateSelectedEdge('target', this.value)">
+                        ${currentData.nodes.map(n => `<option value="${n.id}" ${n.id === edge.target ? 'selected' : ''}>${n.id} (${n.type || 'Process'})</option>`).join('')}
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label>Label / Transition Value</label>
+                    <input type="text" value="${edge.label || ''}" oninput="updateSelectedEdge('label', this.value)">
+                </div>
+                <button class="btn btn-primary" style="background-color: var(--bad-node-color); border-color: var(--bad-node-color); width: 100%; justify-content: center;" onclick="deleteEdge(${idx})">
+                    Delete Edge
+                </button>
+            `;
+        }
+
+        function clearInspector() {
+            document.getElementById('inspector-indicator').textContent = 'None';
+            document.getElementById('inspector-content').innerHTML = `
+                <div style="color: var(--text-muted); font-size: 0.95rem; text-align: center; margin-top: 40px;">
+                    Click any node or edge to inspect and edit details.
+                </div>
+                <div style="margin-top: 20px;">
+                    <button class="btn btn-primary" style="width: 100%; justify-content: center;" onclick="addNewEdge()">
+                        ➕ Add New Edge
+                    </button>
+                </div>
+            `;
+        }
+
+        // Mutation Handlers
+        function updateSelectedNode(field, val) {
+            if (!selectedElement || selectedElement.type !== 'node') return;
+            const node = currentData.nodes.find(n => n.id === selectedElement.id);
+            if (!node) return;
+            
+            if (field === 'type') {
+                if (val === 'Bad') {
+                    node.is_bad = true;
+                    node.type = 'Bad';
+                } else {
+                    node.is_bad = false;
+                    node.type = val;
+                }
+            } else if (field === 'text') {
+                node.text = val;
+            }
+            
+            renderFlowchart();
+        }
+
+        function updateSelectedEdge(field, val) {
+            if (!selectedElement || selectedElement.type !== 'edge') return;
+            const edge = currentData.edges[selectedElement.index];
+            if (!edge) return;
+            
+            edge[field] = val;
+            
+            // If changing endpoints, clear cached physical trace path so it draws straight line
+            if (field === 'source' || field === 'target') {
+                edge.path = [];
+            }
+            
+            renderFlowchart();
+        }
+
+        function deleteNode(id) {
+            if (confirm(`Are you sure you want to delete node ${id}? This will also delete any connected edges.`)) {
+                // Delete connected edges
+                currentData.edges = currentData.edges.filter(e => e.source !== id && e.target !== id);
+                // Delete node
+                currentData.nodes = currentData.nodes.filter(n => n.id !== id);
+                selectedElement = null;
+                clearInspector();
+                renderFlowchart();
+                showToast("Node deleted successfully");
+            }
+        }
+
+        function deleteEdge(idx) {
+            if (confirm("Are you sure you want to delete this edge?")) {
+                currentData.edges.splice(idx, 1);
+                selectedElement = null;
+                clearInspector();
+                renderFlowchart();
+                showToast("Edge deleted successfully");
+            }
+        }
+
+        function addNewEdge() {
+            if (currentData.nodes.length < 2) {
+                alert("Need at least 2 nodes to create an edge.");
+                return;
+            }
+            const src = currentData.nodes[0].id;
+            const tgt = currentData.nodes[currentData.nodes.length - 1].id;
+            
+            currentData.edges.push({
+                source: src,
+                target: tgt,
+                label: "",
+                path: []
+            });
+            
+            selectEdge(currentData.edges.length - 1);
+            showToast("Edge added. Configure endpoints.");
+        }
+
+        // View Option Toggles
+        function setViewMode(mode) {
+            currentMode = mode;
+            document.getElementById('btn-mode-overlay').style.backgroundColor = mode === 'overlay' ? 'var(--accent)' : 'var(--bg-tertiary)';
+            document.getElementById('btn-mode-overlay').style.borderColor = mode === 'overlay' ? 'var(--accent)' : 'var(--border-color)';
+            document.getElementById('btn-mode-reconstructed').style.backgroundColor = mode === 'reconstructed' ? 'var(--accent)' : 'var(--bg-tertiary)';
+            document.getElementById('btn-mode-reconstructed').style.borderColor = mode === 'reconstructed' ? 'var(--accent)' : 'var(--border-color)';
+            
+            renderFlowchart();
+        }
+
+        // Toggle Bad Nodes
+        function toggleBadNodes(checked) {
+            showBadNodes = checked;
+            selectedElement = null;
+            clearInspector();
+            renderFlowchart();
+        }
+
+        // Toggle Text Labels
+        function toggleTextLabels(checked) {
+            showTextLabels = checked;
+            renderFlowchart();
+        }
+
+        function changeOpacity(val) {
+            img.style.opacity = val / 100;
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        // Download and export data
+        function downloadUpdatedData() {
+            if (!currentData) return;
+            
+            const payload = {
+                source_image: currentData.source_image,
+                nodes: currentData.nodes.map(n => ({
+                    id: n.id,
+                    type: n.type,
+                    text: n.text,
+                    bbox: n.bbox,
+                    is_bad: n.is_bad
+                })),
+                edges: currentData.edges.map(e => ({
+                    source: e.source,
+                    target: e.target,
+                    label: e.label,
+                    path: e.path || []
+                }))
+            };
+            
+            const fileContent = `window.flowchartResults = window.flowchartResults || {};\n` +
+                                `window.flowchartResults["${currentFlowchartKey}"] = ` +
+                                JSON.stringify(payload, null, 2) + ";\n";
+                                
+            const blob = new Blob([fileContent], { type: 'application/javascript;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `${currentFlowchartKey}_data.js`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            
+            showToast("Downloaded JS Data File!");
+        }
+    </script>
+</body>
+</html>

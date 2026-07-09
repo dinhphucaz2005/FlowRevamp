@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Any
 
 import config
-from utils.io_helpers import ensure_dirs, save_json, list_images
+from utils.io_helpers import ensure_dirs, list_images
 from utils.visualization import draw_results
 
 from steps.step1_preprocess import preprocess
@@ -84,15 +84,11 @@ def run_pipeline(image_path: Path) -> dict[str, Any]:
         ],
     }
 
-    # Save final JSON
+    # Generate JS Data and Visualisation
     config.OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-    json_path = config.OUTPUT_DIR / f"{image_path.stem}_graph.json"
-    save_json(graph, json_path)
-    logger.info("✓ Graph JSON → %s", json_path)
-
-    # Generate visualisation
     vis_path = draw_results(image_path, nodes_final_with_text, edges)
-    logger.info("✓ Visualisation → %s", vis_path)
+    logger.info("✓ Graph JS Data & Web Visualizer → %s", vis_path)
+
 
     logger.info("PIPELINE COMPLETE: %s  (%d nodes, %d edges)",
                 image_path.name, len(graph["nodes"]), len(graph["edges"]))

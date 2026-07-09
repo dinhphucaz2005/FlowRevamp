@@ -69,8 +69,8 @@ def main() -> None:
         graph = run_pipeline(args.image)
         print(f"\n✓ Done – {len(graph['nodes'])} nodes, "
               f"{len(graph['edges'])} edges")
-        print(f"  JSON:  {config.OUTPUT_DIR / (args.image.stem + '_graph.json')}")
-        print(f"  Image: {config.OUTPUT_DIR / (args.image.stem + '_result.png')}")
+        print(f"  JS Data:    {config.OUTPUT_DIR / (args.image.stem + '_data.js')}")
+        print(f"  Visualizer: {config.OUTPUT_DIR / 'visualizer.html'}")
     else:
         results = run_all()
         print(f"\n✓ Processed {len(results)} image(s)")
