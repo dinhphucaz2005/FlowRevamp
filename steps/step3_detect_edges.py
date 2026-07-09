@@ -259,6 +259,17 @@ def detect_edges(
             if path_found:
                 _add_edge(n1, n2, global_cnt)
 
+    # Save intermediate debug images
+    # 1. Save the masked skeleton (which isolates the edges/lines)
+    mask_path = output_dir / f"{image_path.stem}_edge_mask.png"
+    cv2.imwrite(str(mask_path), mask)
+    logger.info("Saved edge mask skeleton → %s", mask_path)
+
+    # 2. Save the debug visualization of traced edges
+    edges_vis_path = output_dir / f"{image_path.stem}_edges_traced.png"
+    cv2.imwrite(str(edges_vis_path), debug_img)
+    logger.info("Saved traced edges visualisation → %s", edges_vis_path)
+
     logger.info("Detected %d raw edges", len(edges))
     return edges, used_contours
 

@@ -346,6 +346,9 @@ def detect_nodes(
     logger.info("Preprocessing to remove closed arrowheads")
     _remove_closed_arrowheads(remaining, dist)
 
+    # Save initial remaining binary (after arrowhead removal, before node extraction)
+    cv2.imwrite(str(output_dir / f"{image_path.stem}_step2_remaining_initial.png"), remaining)
+
     logger.info("Starting iterative detection (max %d iterations)",
                 config.RANSAC_MAX_ITERATIONS)
 
@@ -353,8 +356,11 @@ def detect_nodes(
         logger.debug("── Iteration %d / %d ──", iteration,
                      config.RANSAC_MAX_ITERATIONS)
 
-
         nodes, found_any = _extract_nodes_from_hierarchy(remaining, dist, nodes)
+
+        # Save remaining binary at each major step or final step
+        if found_any:
+            cv2.imwrite(str(output_dir / f"{image_path.stem}_step2_remaining_iter_{iteration}.png"), remaining)
 
         if not found_any:
             logger.debug("  No new shapes found – stopping")
@@ -365,6 +371,18 @@ def detect_nodes(
     # Re-assign IDs in sorted order
     for i, node in enumerate(nodes):
         node["id"] = f"n{i + 1}"
+
+    # Save final remaining binary (only lines left)
+    cv2.imwrite(str(output_dir / f"{image_path.stem}_step2_remaining_final.png"), remaining)
+
+    # Draw detected nodes on the original image and save
+    node_vis = img.copy()
+    for node in nodes:
+        x, y, w, h = node["bbox"]
+        cv2.rectangle(node_vis, (x, y), (x + w, y + h), (0, 255, 0), 2)
+        cv2.putText(node_vis, f"{node['id']}:{node['type']}", (x, max(y - 5, 12)),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1, cv2.LINE_AA)
+    cv2.imwrite(str(output_dir / f"{image_path.stem}_nodes_detected.png"), node_vis)
 
     logger.info("Detected %d raw nodes in %d iterations", len(nodes), iteration)
 

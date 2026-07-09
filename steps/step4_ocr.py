@@ -53,6 +53,12 @@ def extract_text(image_path: Path, nodes: list[dict[str, Any]],
         text = " ".join(detections).strip() if detections else ""
         results.append({**node, "text": text})
         
+        # Save a few crop images for visualization in report (first 4 nodes)
+        if node["id"] in ["n1", "n2", "n3", "n4"]:
+            crop_path = output_dir / f"{image_path.stem}_node_{node['id']}_crop.png"
+            cv2.imwrite(str(crop_path), crop)
+            logger.info("Saved OCR crop node %s → %s", node["id"], crop_path)
+        
         # Draw text on debug image
         if text:
             # Draw a dark background rectangle for text visibility

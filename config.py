@@ -54,15 +54,17 @@ ARROW_TEMPLATE_SIZE = 20          # px side for arrowhead template
 EDGE_NODE_SNAP_DISTANCE = 40      # Max px distance to snap line-end → node
 
 # ── Step 4: OCR ──────────────────────────────────────────────
-ENABLE_OCR = True                # Set to False to temporarily disable OCR
+ENABLE_OCR = False                # Set to False to temporarily disable OCR
 OCR_LANGUAGES = ["en", "vi"]      # EasyOCR language list
 OCR_ROI_PADDING_RATIO = 0.08      # 8 % padding around each node crop
 OCR_GPU = True                    # Use GPU for EasyOCR
 
 
 # ── Visualisation ────────────────────────────────────────────
-VIS_NODE_COLOR = (0, 255, 0)      # Green bounding boxes
+VIS_NODE_COLOR = (10, 161, 123)   # Green/teal bounding boxes
 VIS_EDGE_COLOR = (255, 0, 255)    # Magenta connection lines
-VIS_TEXT_COLOR = (255, 255, 0)    # Yellow text labels
-VIS_LINE_THICKNESS = 2
-VIS_FONT_SCALE = 0.5
+VIS_BAD_NODE_COLOR = (0, 0, 255)  # Red for bad nodes/artifacts
+VIS_TEXT_COLOR = (255, 255, 255)  # White text labels
+VIS_TEXT_BG_COLOR = (30, 30, 30)  # Dark charcoal background for label box
+VIS_LINE_THICKNESS = 5
+VIS_FONT_SCALE = 0.55
